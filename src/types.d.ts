@@ -11,6 +11,7 @@ declare global {
 		pos: Position;
 		speed: number;
 		display: (state: State) => void;
+		update: (state: State) => void;
 	};
 
 	type Enemy = {
@@ -25,6 +26,7 @@ declare global {
 	type GameLoop = (cb: () => void) => void;
 
 	type Tile = {
+		id: number;
 		row: number;
 		col: number;
 		startX: number;

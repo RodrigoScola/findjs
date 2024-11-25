@@ -1,24 +1,24 @@
-import { InTile as inTile } from './position.js';
+import {InTile as inTile} from './position.js';
 import assert from '../assert/assert.js';
 
 let ids = 0;
 
 /** @returns {Tile} */
 function createTile() {
-	ids++;
-	return {
-		startX: 0,
-		row: 0,
-		col: 0,
-		walkable: true,
-		startY: 0,
-		endX: 0,
-		endY: 0,
-		f: 0,
-		g: 0,
-		h: 0,
-		parent: null,
-	};
+    return {
+        id: ids++,
+        startX: 0,
+        row: 0,
+        col: 0,
+        walkable: true,
+        startY: 0,
+        endX: 0,
+        endY: 0,
+        f: 0,
+        g: 0,
+        h: 0,
+        parent: null,
+    };
 }
 
 /**
@@ -28,68 +28,68 @@ function createTile() {
  * @param {number} rows
  * @returns {MainMap} */
 export function createMap(width, height, cols, rows) {
-	/**@type {MainMap} */
-	const map = {
-		cols: cols,
-		rows: rows,
-		tiles: new Array(rows),
-		display: (ctx) => {
-			const canvas = ctx.canvas.getContext('2d');
-			const map = ctx.map;
+    /**@type {MainMap} */
+    const map = {
+        cols: cols,
+        rows: rows,
+        tiles: new Array(rows),
+        display: (ctx) => {
+            const canvas = ctx.canvas.getContext('2d');
+            const map = ctx.map;
 
-			for (let i = 0; i < map.cols; i++) {
-				const line = map.tiles[i];
-				assert(line, `line ${i} of ${map.tiles.length} is undefined`);
+            for (let i = 0; i < map.cols; i++) {
+                const line = map.tiles[i];
+                assert(line, `line ${i} of ${map.tiles.length} is undefined`);
 
-				for (let j = 0; j < map.rows; j++) {
-					const tile = line[j];
-					// canvas.fillStyle = 'orange';
-					// canvas.fillRect(
-					// 	tile.startX,
-					// 	tile.startY,
-					// 	tile.endX - tile.startX,
-					// 	tile.endY - tile.startY
-					// );
-					canvas.strokeStyle = 'black';
-					canvas.strokeRect(
-						tile.startX,
-						tile.startY,
-						tile.endX - tile.startX,
-						tile.endY - tile.startY
-					);
-				}
-			}
-		},
-	};
+                for (let j = 0; j < map.rows; j++) {
+                    const tile = line[j];
+                    // canvas.fillStyle = 'orange';
+                    // canvas.fillRect(
+                    // 	tile.startX,
+                    // 	tile.startY,
+                    // 	tile.endX - tile.startX,
+                    // 	tile.endY - tile.startY
+                    // );
+                    canvas.strokeStyle = 'black';
+                    canvas.strokeRect(
+                        tile.startX,
+                        tile.startY,
+                        tile.endX - tile.startX,
+                        tile.endY - tile.startY
+                    );
+                }
+            }
+        },
+    };
 
-	const colSize = Math.floor(width / cols);
-	const rowSize = Math.floor(height / rows);
+    const colSize = Math.floor(width / cols);
+    const rowSize = Math.floor(height / rows);
 
-	let size = 0;
-	for (let i = 0; i < cols; i++) {
-		map.tiles[i] = /** @type {Tile[]} */ ([]);
+    let size = 0;
+    for (let i = 0; i < cols; i++) {
+        map.tiles[i] = /** @type {Tile[]} */ ([]);
 
-		for (let j = 0; j < rows; j++) {
-			const tile = createTile();
-			size++;
+        for (let j = 0; j < rows; j++) {
+            const tile = createTile();
+            size++;
 
-			tile.col = i;
-			tile.row = j;
+            tile.col = i;
+            tile.row = j;
 
-			tile.startX = colSize * i;
-			tile.startY = rowSize * j;
+            tile.startX = colSize * i;
+            tile.startY = rowSize * j;
 
-			tile.endX = colSize * i + colSize;
-			tile.endY = rowSize * j + rowSize;
-			assert(tile, 'no tile?');
-			map.tiles[i].push(tile);
-			// map.tiles[i][j] = tile;
-		}
-		assert(map.tiles[i].length === rows, 'mismatch in col creation');
-	}
+            tile.endX = colSize * i + colSize;
+            tile.endY = rowSize * j + rowSize;
+            assert(tile, 'no tile?');
+            map.tiles[i].push(tile);
+            // map.tiles[i][j] = tile;
+        }
+        assert(map.tiles[i].length === rows, 'mismatch in col creation');
+    }
 
-	assert(ids === size, `there is size difference, expected: ${size} received: ${ids}`);
-	return map;
+    assert(ids === size, `there is size difference, expected: ${size} received: ${ids}`);
+    return map;
 }
 
 /**
@@ -99,131 +99,142 @@ export function createMap(width, height, cols, rows) {
  * @param {number} y
  *  @returns {Tile | undefined} */
 export function getTileByPos(state, x, y) {
-	for (let i = 0; i < state.map.cols; i++) {
-		const row = state.map.tiles[i];
-		for (const tile of row) {
-			if (inTile(x, y, tile)) {
-				return tile;
-			}
-		}
-	}
+    const tiles = state.map.tiles;
+
+    for (let i = 0; i < tiles.length; ++i) {
+        for (let j = 0; j < tiles.length; ++j) {
+
+            if (inTile(x, y, tiles[i][j])) {
+                return tiles[i][j]
+            }
+
+
+        }
+
+    }
+
+
 }
 
 /**
- * @param {Tile} startTile
- * @param {Tile} endTile
+ * @see {@link https://www.youtube.com/watch?v=mZfyt03LDH4} for tutorial
+ * @param {Tile} start
+ * @param {Tile} end
  * @param {MainMap} mainMap
  * @returns {Tile[]} */
-export function findPath(startTile, endTile, mainMap) {
-	/** @type {Tile[]} */
-	const openList = []; // Tiles to be evaluated
-	/** @type { Set<Tile>} */
-	const closedList = new Set(); // Tiles already evaluated
+export function findPath(start, end, mainMap) {
 
-	// Initialize the start tile
-	startTile.g = 0;
-	startTile.h = heuristic(startTile, endTile);
-	startTile.f = startTile.g + startTile.h;
+    /** @type {Tile[]} */
+    const openSet = [start]
 
-	openList.push(startTile);
+    /** @type {Tile[]} */
+    const closedSet = []
 
-	while (openList.length > 0) {
-		// Get the tile with the lowest 'f' score
-		const currentTile = openList.sort((a, b) => a.f - b.f).shift();
 
-		// If the current tile is the end tile, build and return the path
-		if (currentTile === endTile) {
-			return reconstructPath(currentTile);
-		}
 
-		closedList.add(currentTile);
+    while (openSet.length > 0) {
+        let ind = 0;
+        let current = openSet[ind];
+        assert(current, `first node in open set is undefined with len: ${openSet.length}`)
 
-		// Get neighbors
-		const neighbors = getNeighbors(currentTile, mainMap);
+        for (let i = 0; i < openSet.length; ++i) {
+            if (openSet[i].f < current.f || openSet[i].f === current.f && openSet[i].h < current.h) {
+                current = openSet[i];
+                ind = i
+            }
+        }
+        const node = openSet.splice(ind, 1);
+        assert(node.length === 1,`only one at a time boi, received: ${node.length}`)
+        closedSet.push(node[0])
+        if( current.id === end.id) {
 
-		for (const neighbor of neighbors) {
-			if (!neighbor.walkable || closedList.has(neighbor)) {
-				continue; // Skip non-walkable or already evaluated tiles
-			}
+            return retrace(start,end).reverse()
+        }
 
-			const tentativeG = currentTile.g + 1; // Assuming uniform cost for moving to a neighbor
+        for(const n of getNeighbors(current, mainMap)) {
+            if (!n.walkable || closedSet.includes(n)) {
+                continue;
+            }
 
-			if (tentativeG < neighbor.g || !openList.includes(neighbor)) {
-				// Update neighbor's scores
-				neighbor.g = tentativeG;
-				neighbor.h = heuristic(neighbor, endTile);
-				neighbor.f = neighbor.g + neighbor.h;
-				neighbor.parent = currentTile;
+            const newMovementCost = current.g + getDist(current,n)
+            if (newMovementCost < n.g || !openSet.includes(n)){
 
-				if (!openList.includes(neighbor)) {
-					openList.push(neighbor);
-				}
-			}
-		}
-	}
+                n.g = newMovementCost;
+                n.h = getDist(n,end)
+                n.parent = current
 
-	// If the loop ends, no path was found
-	return [];
+                if (!openSet.includes(n)) {
+                    openSet.push(n)
+                }
+
+            }
+
+        }
+
+
+    }
 }
 
-// Heuristic function (Manhattan distance)
-/**
- *  @param {Tile} start
- *  @param {Tile} end
- * @returns {number}
- */
-function heuristic(start, end) {
-	return Math.abs(start.endX - end.endX) + Math.abs(start.endY - end.endY);
+/** Gets the path from the start to the end, using the parent
+ * need to figure a good way to object pool maybe?
+ * @param {Tile} start
+  @param {Tile} end */
+function retrace(start,end) {
+    /** @type {Tile[]} */
+    const path = []
+    let current = end
+    while(current.id !== start.id){
+
+        path.push(current)
+        current = current.parent
+    }
+
+    return path
+
 }
 
-/**
- * param {Tile} tile 
-/**@returns {Tile[]} */
-function reconstructPath(tile) {
-	/**@type {Tile[]} */
-	const path = [];
-	/**@type {Tile | null} */
-	let current = tile;
+/** @param {Tile} start
+ * @param {Tile} end
+ @returns {number}
+     */
+function getDist(start,end) {
+    //16:39
+    const distX= Math.abs(start.col - end.col)
+    const distY= Math.abs(start.row - end.row)
 
-	while (current) {
-		path.push(current);
-		current = current.parent;
-	}
+    if (distX > distY){
+        return 14 * distY  + 10 * (distX - distY)
+    }
+    return 14 * distX + 10 * (distY - distX)
 
-	return path.reverse(); // Reverse to get path from start to end
 }
 
-/**
- * @param {Tile} tile
- * @param {MainMap} map
- * @returns {Tile[]}
- *
- */
-function getNeighbors(tile, map) {
-	/**@type {Tile[]} */
-	const neighbors = [];
-	const { tiles, rows, cols } = map;
+/** @param {Tile} node
+ * @param {MainMap} map */
+ function getNeighbors(node,map) {
+    const nm = []
 
-	const directions = [
-		{ dx: 0, dy: -1 }, // Up
-		{ dx: 0, dy: 1 }, // Down
-		{ dx: -1, dy: 0 }, // Left
-		{ dx: 1, dy: 0 }, // Right
-	];
+    for (let x = -1;x <= 1; x++) {
+        for (let y = -1;y <=1; y++) {
+            if(x === 0 && y === 0) {continue;}
 
-	for (const { dx, dy } of directions) {
-		const newX = tile.row + dx;
-		const newY = tile.col + dy;
+            const checkX = node.col +x;
+            const checkY = node.row  +y;
 
-		if (newX >= 0 && newX < cols && newY >= 0 && newY < rows) {
-			assert(tiles[newY], `col came undefined at ${newY}, max of ${rows}`);
-			const tile = tiles[newY][newX];
-			assert(tile, `tile came undefined at x: ${newX} y: ${newY}`);
-			if (tile.walkable) {
-				neighbors.push(tile);
-			}
-		}
-	}
+            if (checkX >= 0 && checkX < map.cols && checkY >= 0 && checkY < map.rows    ) {
+                console.log(map)
+                assert(map.tiles[checkX],'x came undefined on: ' + checkX)
+                assert(map.tiles[checkX][checkY],`y came undefined on ${checkX} - ${checkY}`)
+                const tileNode =map.tiles[checkX][checkY]
+                assert(tileNode, `node at ${checkX} and ${checkY} is undefined`);
+                nm.push(tileNode);
+            }
 
-	return neighbors;
+
+        }
+    }
+
+    return nm
+
 }
+

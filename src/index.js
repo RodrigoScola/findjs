@@ -1,4 +1,4 @@
-import { InTile, getVector, getDistance, getVacant } from './map/position.js';
+import {getDistance, InTile} from './map/position.js';
 import { createMap, findPath, getTileByPos } from './map/map.js';
 import assert from './assert/assert.js';
 
@@ -12,6 +12,13 @@ function createEnemy() {
 		update: function (state) {
 			const player = state.player;
 			assert(player, 'player needs to exist');
+
+			const playerDist = getDistance(this.startX, this.startY, player.pos.startX, player.pos.startY);
+			if( playerDist < 50) {
+				return
+			}
+
+
 			if (this.currentPath.length === 0) {
 				const tile = getTileByPos(state, this.startX, this.startY);
 				assert(tile, 'enemy needs to be in a tile');
@@ -19,16 +26,15 @@ function createEnemy() {
 				const playerTile = getTileByPos(state, player.pos.startX, player.pos.startY);
 				assert(playerTile, 'enemy needs to be in a tile');
 
-				const path = findPath(tile, playerTile, state.map);
-				this.currentPath = path;
+				this.currentPath = findPath(tile, playerTile, state.map);
 			}
 
 			let t = this.currentPath[0];
 
-			const dirX = t.startX - this.startX;
+			const dirX  = t.startX - this.startX;
 			const dirY = t.startY - this.startY;
 			const dist = Math.hypot(dirX, dirY);
-			if (InTile(this.startX, this.startY, t) || dist < 10) {
+			if (InTile(this.startX, this.startY, t) || dist < 50) {
 				this.currentPath.shift();
 				t = this.currentPath[0];
 			}
@@ -46,7 +52,7 @@ function createEnemy() {
 		},
 
 		display: function () {
-			renderCircle(state, this.startX, this.startY, 5);
+			renderCircle(state, this.startX , this.startY, 5);
 		},
 	};
 }
@@ -57,6 +63,10 @@ function createPlayer() {
 		display(state) {
 			renderCircle(state, this.pos.startX, this.pos.startY, 5);
 		},
+		update(state) {
+			this.pos.startX -= this.speed
+			// this.pos.startY -= this.speed + 100
+		},
 		speed: 1,
 		pos: {
 			startX: 0,
@@ -66,6 +76,7 @@ function createPlayer() {
 		},
 	};
 }
+
 
 const now = Date.now;
 
@@ -145,6 +156,8 @@ loop(() => {
 	const canvas = state.canvas;
 	canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
 
+	state.player.update(state)
+
 	for (const enemy of state.enemies) {
 		enemy.update(state);
 	}
@@ -155,3 +168,4 @@ loop(() => {
 		enemy.display(state);
 	}
 });
+
